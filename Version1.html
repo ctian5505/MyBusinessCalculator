@@ -210,6 +210,70 @@
             opacity: 1;
         }
 
+        /* Rate editor styles */
+        .rate-editor {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+        
+        .rate-editor-heading {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .rate-editor-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .rate-editor-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .rate-editor-button {
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .rate-editor-button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .edit-rate-button {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            margin-top: 5px;
+            text-decoration: underline;
+            text-align: center;
+            display: block;
+            width: 100%;
+        }
+        
+        .edit-rate-button:hover {
+            color: white;
+        }
+
         /* For mobile responsiveness */
         @media (max-width: 480px) {
             .container {
@@ -227,6 +291,14 @@
             .option-button {
                 font-size: 12px;
                 padding: 10px 5px;
+            }
+            
+            .rate-editor-controls {
+                flex-direction: column;
+            }
+            
+            .rate-editor-input, .rate-editor-button {
+                width: 100%;
             }
         }
     </style>
@@ -262,6 +334,10 @@
                 <span id="summary-currency-label" class="summary-label">SHARDS:</span>
                 <span id="summary-currency" class="summary-value">29.85</span>
             </div>
+            <div class="summary-row" style="margin-top: 8px;">
+                <span class="summary-label">Rate:</span>
+                <span id="summary-rate" class="summary-value">33.5 PHP = 1 SHARDS</span>
+            </div>
             <button id="copy-button" class="copy-button" title="Copy to clipboard">
                 <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
                     <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
@@ -273,6 +349,16 @@
         <button id="refresh-button" class="refresh-button">Refresh</button>
         
         <p id="rate-info" class="rate-info">Current rate: 33.5 PHP = 1 ETOP FUN SHARDS</p>
+        <button id="edit-rate-button" class="edit-rate-button">Edit rate</button>
+        
+        <div id="rate-editor" class="rate-editor">
+            <p class="rate-editor-heading">Edit Conversion Rate</p>
+            <div class="rate-editor-controls">
+                <input type="number" id="new-rate-input" class="rate-editor-input" placeholder="Enter new rate">
+                <button id="save-rate-button" class="rate-editor-button">Save</button>
+                <button id="cancel-rate-button" class="rate-editor-button">Cancel</button>
+            </div>
+        </div>
     </div>
     
     <div id="copy-notification" class="copy-notification">Copied to clipboard!</div>
@@ -289,19 +375,29 @@
         const rateInfo = document.getElementById('rate-info');
         const refreshButton = document.getElementById('refresh-button');
         const summaryContainer = document.getElementById('summary-container');
-        const summaryText = document.getElementById('summary-text');
         const copyButton = document.getElementById('copy-button');
         const copyNotification = document.getElementById('copy-notification');
+        const summaryRate = document.getElementById('summary-rate');
         
-        // Conversion rates
-        const rates = {
+        // Rate editor elements
+        const editRateButton = document.getElementById('edit-rate-button');
+        const rateEditor = document.getElementById('rate-editor');
+        const newRateInput = document.getElementById('new-rate-input');
+        const saveRateButton = document.getElementById('save-rate-button');
+        const cancelRateButton = document.getElementById('cancel-rate-button');
+        
+        // Load saved rates from localStorage or use defaults
+        const savedRates = localStorage.getItem('currencyRates');
+        
+        // Conversion rates (default or from localStorage)
+        let rates = savedRates ? JSON.parse(savedRates) : {
             etop: {
-                name: 'ETOP FUN SHARDS',
+                name: 'SHARDS',
                 rate: 33.5,
                 bgClass: 'etop-bg'
             },
             csgo: {
-                name: 'CSGO EMPIRE COINS',
+                name: 'COINS',
                 rate: 35.5,
                 bgClass: 'csgo-bg'
             }
@@ -337,6 +433,9 @@
             phpInput.value = '';
             currencyInput.value = '';
             summaryContainer.style.display = 'none';
+            
+            // Close rate editor if open
+            rateEditor.style.display = 'none';
         }
         
         // Format number to always show 2 decimal places without rounding
@@ -409,6 +508,9 @@
             document.getElementById('summary-currency').textContent = formattedCurrency;
             document.getElementById('summary-currency-label').textContent = rates[currentCurrency].name + ':';
             
+            // Update the summary rate display
+            summaryRate.textContent = `${rates[currentCurrency].rate} PHP = 1 ${rates[currentCurrency].name}`;
+            
             summaryContainer.style.display = 'block';
         }
         
@@ -417,8 +519,9 @@
             const phpValue = document.getElementById('summary-php').textContent;
             const currencyLabel = document.getElementById('summary-currency-label').textContent;
             const currencyValue = document.getElementById('summary-currency').textContent;
+            const rateValue = document.getElementById('summary-rate').textContent;
             
-            const textToCopy = `PHP: ${phpValue}\n${currencyLabel} ${currencyValue}`;
+            const textToCopy = `PHP: ${phpValue}\n${currencyLabel} ${currencyValue}\nRate: ${rateValue}`;
             
             // Create a temporary textarea element to handle the copy
             const textarea = document.createElement('textarea');
@@ -444,6 +547,60 @@
             }, 2000);
         }
         
+        // Show rate editor
+        function showRateEditor() {
+            newRateInput.value = rates[currentCurrency].rate;
+            rateEditor.style.display = 'block';
+            newRateInput.focus();
+        }
+        
+        // Save the new rate
+        function saveNewRate() {
+            const newRate = parseFloat(newRateInput.value);
+            
+            if (!isNaN(newRate) && newRate > 0) {
+                // Update the rate
+                rates[currentCurrency].rate = newRate;
+                
+                // Save to localStorage
+                localStorage.setItem('currencyRates', JSON.stringify(rates));
+                
+                // Update the UI
+                rateInfo.textContent = `Current rate: ${newRate} PHP = 1 ${rates[currentCurrency].name}`;
+                
+                // If summary is displayed, update it too
+                if (summaryContainer.style.display !== 'none') {
+                    summaryRate.textContent = `${newRate} PHP = 1 ${rates[currentCurrency].name}`;
+                    
+                    // Recalculate conversion if inputs have values
+                    if (phpInput.value) {
+                        convertFromPHP();
+                    } else if (currencyInput.value) {
+                        convertToPHP();
+                    }
+                }
+                
+                // Hide the editor
+                rateEditor.style.display = 'none';
+                
+                // Show confirmation
+                copyNotification.textContent = 'Rate updated successfully!';
+                copyNotification.classList.add('show');
+                
+                setTimeout(() => {
+                    copyNotification.classList.remove('show');
+                }, 2000);
+            } else {
+                // Show error
+                copyNotification.textContent = 'Please enter a valid rate!';
+                copyNotification.classList.add('show');
+                
+                setTimeout(() => {
+                    copyNotification.classList.remove('show');
+                }, 2000);
+            }
+        }
+        
         // Event listeners
         etopButton.addEventListener('click', () => updateCurrency('etop'));
         csgoButton.addEventListener('click', () => updateCurrency('csgo'));
@@ -457,6 +614,20 @@
             phpInput.value = '';
             currencyInput.value = '';
             summaryContainer.style.display = 'none';
+        });
+        
+        // Rate editor event listeners
+        editRateButton.addEventListener('click', showRateEditor);
+        saveRateButton.addEventListener('click', saveNewRate);
+        cancelRateButton.addEventListener('click', () => {
+            rateEditor.style.display = 'none';
+        });
+        
+        // Enter key in the rate input should save
+        newRateInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                saveNewRate();
+            }
         });
         
         // Initialize with ETOP FUN SHARDS
