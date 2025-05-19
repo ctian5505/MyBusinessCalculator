@@ -241,6 +241,10 @@
             background-color: rgba(255, 255, 255, 0.1);
             color: white;
         }
+
+        .rate-editor-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
         
         .rate-editor-button {
             padding: 10px;
@@ -268,6 +272,7 @@
             text-align: center;
             display: block;
             width: 100%;
+            transition: color 0.3s ease;
         }
         
         .edit-rate-button:hover {
@@ -354,7 +359,7 @@
         <div id="rate-editor" class="rate-editor">
             <p class="rate-editor-heading">Edit Conversion Rate</p>
             <div class="rate-editor-controls">
-                <input type="number" id="new-rate-input" class="rate-editor-input" placeholder="Enter new rate">
+                <input type="number" id="new-rate-input" class="rate-editor-input" placeholder="Enter new rate" step="0.01">
                 <button id="save-rate-button" class="rate-editor-button">Save</button>
                 <button id="cancel-rate-button" class="rate-editor-button">Cancel</button>
             </div>
@@ -387,21 +392,46 @@
         const cancelRateButton = document.getElementById('cancel-rate-button');
         
         // Load saved rates from localStorage or use defaults
-        const savedRates = localStorage.getItem('currencyRates');
-        
-        // Conversion rates (default or from localStorage)
-        let rates = savedRates ? JSON.parse(savedRates) : {
-            etop: {
-                name: 'SHARDS',
-                rate: 33.5,
-                bgClass: 'etop-bg'
-            },
-            csgo: {
-                name: 'COINS',
-                rate: 35.5,
-                bgClass: 'csgo-bg'
+        function loadRatesFromStorage() {
+            const savedRates = localStorage.getItem('currencyRates');
+            if (savedRates) {
+                try {
+                    return JSON.parse(savedRates);
+                } catch (error) {
+                    console.error('Error parsing saved rates:', error);
+                    return getDefaultRates();
+                }
             }
-        };
+            return getDefaultRates();
+        }
+
+        function getDefaultRates() {
+            return {
+                etop: {
+                    name: 'SHARDS',
+                    rate: 33.5,
+                    bgClass: 'etop-bg'
+                },
+                csgo: {
+                    name: 'COINS',
+                    rate: 35.5,
+                    bgClass: 'csgo-bg'
+                }
+            };
+        }
+
+        function saveRatesToStorage() {
+            try {
+                localStorage.setItem('currencyRates', JSON.stringify(rates));
+                console.log('Rates saved successfully:', rates);
+            } catch (error) {
+                console.error('Error saving rates:', error);
+                showNotification('Error saving rates!');
+            }
+        }
+        
+        // Initialize rates
+        let rates = loadRatesFromStorage();
         
         // Current selected currency (default: etop)
         let currentCurrency = 'etop';
@@ -427,7 +457,7 @@
             currencyInput.placeholder = `Enter ${rates[currency].name} amount`;
             
             // Update rate info
-            rateInfo.textContent = `Current rate: ${rates[currency].rate} PHP = 1 ${rates[currency].name}`;
+            updateRateDisplay();
             
             // Clear inputs and hide summary
             phpInput.value = '';
@@ -436,6 +466,11 @@
             
             // Close rate editor if open
             rateEditor.style.display = 'none';
+        }
+
+        function updateRateDisplay() {
+            const currentRate = rates[currentCurrency];
+            rateInfo.textContent = `Current rate: ${currentRate.rate} PHP = 1 ${currentRate.name}`;
         }
         
         // Format number to always show 2 decimal places without rounding
@@ -464,13 +499,19 @@
         
         // Convert PHP to selected currency
         function convertFromPHP() {
-            if (phpInput.value === '') {
+            if (phpInput.value === '' || phpInput.value === null) {
                 currencyInput.value = '';
                 summaryContainer.style.display = 'none';
                 return;
             }
             
             const phpAmount = parseFloat(phpInput.value);
+            if (isNaN(phpAmount)) {
+                currencyInput.value = '';
+                summaryContainer.style.display = 'none';
+                return;
+            }
+            
             const currencyAmount = phpAmount / rates[currentCurrency].rate;
             
             // Display with exactly 2 decimal places without rounding
@@ -482,13 +523,19 @@
         
         // Convert selected currency to PHP
         function convertToPHP() {
-            if (currencyInput.value === '') {
+            if (currencyInput.value === '' || currencyInput.value === null) {
                 phpInput.value = '';
                 summaryContainer.style.display = 'none';
                 return;
             }
             
             const currencyAmount = parseFloat(currencyInput.value);
+            if (isNaN(currencyAmount)) {
+                phpInput.value = '';
+                summaryContainer.style.display = 'none';
+                return;
+            }
+            
             const phpAmount = currencyAmount * rates[currentCurrency].rate;
             
             // Display with exactly 2 decimal places without rounding
@@ -523,9 +570,22 @@
             
             const textToCopy = `PHP: ${phpValue}\n${currencyLabel} ${currencyValue}\nRate: ${rateValue}`;
             
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showNotification('Copied to clipboard!');
+                }).catch(err => {
+                    fallbackCopyTextToClipboard(textToCopy);
+                });
+            } else {
+                fallbackCopyTextToClipboard(textToCopy);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
             // Create a temporary textarea element to handle the copy
             const textarea = document.createElement('textarea');
-            textarea.value = textToCopy;
+            textarea.value = text;
             textarea.setAttribute('readonly', '');
             textarea.style.position = 'absolute';
             textarea.style.left = '-9999px';
@@ -533,15 +593,24 @@
             
             // Select the text and copy it
             textarea.select();
-            document.execCommand('copy');
+            textarea.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                document.execCommand('copy');
+                showNotification('Copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                showNotification('Failed to copy text!');
+            }
             
             // Remove the temporary element
             document.body.removeChild(textarea);
-            
-            // Show notification
+        }
+
+        function showNotification(message) {
+            copyNotification.textContent = message;
             copyNotification.classList.add('show');
             
-            // Hide notification after 2 seconds
             setTimeout(() => {
                 copyNotification.classList.remove('show');
             }, 2000);
@@ -552,53 +621,59 @@
             newRateInput.value = rates[currentCurrency].rate;
             rateEditor.style.display = 'block';
             newRateInput.focus();
+            newRateInput.select(); // Select all text for easy replacement
         }
         
         // Save the new rate
         function saveNewRate() {
-            const newRate = parseFloat(newRateInput.value);
+            const newRateValue = newRateInput.value.trim();
             
-            if (!isNaN(newRate) && newRate > 0) {
-                // Update the rate
-                rates[currentCurrency].rate = newRate;
-                
-                // Save to localStorage
-                localStorage.setItem('currencyRates', JSON.stringify(rates));
-                
-                // Update the UI
-                rateInfo.textContent = `Current rate: ${newRate} PHP = 1 ${rates[currentCurrency].name}`;
-                
-                // If summary is displayed, update it too
-                if (summaryContainer.style.display !== 'none') {
-                    summaryRate.textContent = `${newRate} PHP = 1 ${rates[currentCurrency].name}`;
-                    
-                    // Recalculate conversion if inputs have values
-                    if (phpInput.value) {
-                        convertFromPHP();
-                    } else if (currencyInput.value) {
-                        convertToPHP();
-                    }
-                }
-                
-                // Hide the editor
-                rateEditor.style.display = 'none';
-                
-                // Show confirmation
-                copyNotification.textContent = 'Rate updated successfully!';
-                copyNotification.classList.add('show');
-                
-                setTimeout(() => {
-                    copyNotification.classList.remove('show');
-                }, 2000);
-            } else {
-                // Show error
-                copyNotification.textContent = 'Please enter a valid rate!';
-                copyNotification.classList.add('show');
-                
-                setTimeout(() => {
-                    copyNotification.classList.remove('show');
-                }, 2000);
+            if (!newRateValue) {
+                showNotification('Please enter a rate!');
+                newRateInput.focus();
+                return;
             }
+
+            const newRate = parseFloat(newRateValue);
+            
+            if (isNaN(newRate) || newRate <= 0) {
+                showNotification('Please enter a valid positive number!');
+                newRateInput.focus();
+                newRateInput.select();
+                return;
+            }
+            
+            // Update the rate
+            rates[currentCurrency].rate = newRate;
+            
+            // Save to localStorage
+            saveRatesToStorage();
+            
+            // Update the UI
+            updateRateDisplay();
+            
+            // If summary is displayed, update it too
+            if (summaryContainer.style.display !== 'none') {
+                summaryRate.textContent = `${newRate} PHP = 1 ${rates[currentCurrency].name}`;
+                
+                // Recalculate conversion if inputs have values
+                if (phpInput.value) {
+                    convertFromPHP();
+                } else if (currencyInput.value) {
+                    convertToPHP();
+                }
+            }
+            
+            // Hide the editor
+            rateEditor.style.display = 'none';
+            
+            // Show confirmation
+            showNotification(`Rate updated to ${newRate} PHP = 1 ${rates[currentCurrency].name}!`);
+        }
+
+        function cancelRateEdit() {
+            rateEditor.style.display = 'none';
+            newRateInput.value = ''; // Clear the input
         }
         
         // Event listeners
@@ -619,19 +694,29 @@
         // Rate editor event listeners
         editRateButton.addEventListener('click', showRateEditor);
         saveRateButton.addEventListener('click', saveNewRate);
-        cancelRateButton.addEventListener('click', () => {
-            rateEditor.style.display = 'none';
-        });
+        cancelRateButton.addEventListener('click', cancelRateEdit);
         
         // Enter key in the rate input should save
         newRateInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 saveNewRate();
+            } else if (e.key === 'Escape') {
+                cancelRateEdit();
+            }
+        });
+
+        // Escape key to close rate editor
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && rateEditor.style.display !== 'none') {
+                cancelRateEdit();
             }
         });
         
         // Initialize with ETOP FUN SHARDS
         updateCurrency('etop');
+        
+        // Debug: Log initial rates
+        console.log('Initial rates loaded:', rates);
     </script>
 </body>
 </html>
