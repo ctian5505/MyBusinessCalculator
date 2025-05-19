@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Currency Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .etop-bg {
+            background-color: rgb(151,117,17);
+            color: white;
+        }
+        
+        .csgo-bg {
+            background-color: rgb(20,23,29);
+            color: white;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        
+        h2 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .options {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .option-button {
+            flex: 1;
+            padding: 12px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .option-button:first-child {
+            margin-right: 10px;
+        }
+        
+        .option-button.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .converter {
+            margin-top: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border 0.3s ease;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .refresh-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .refresh-button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .rate-info {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .summary-container {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .summary-text {
+            color: white;
+            font-size: 14px;
+        }
+        
+        .copy-button {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .copy-icon {
+            width: 20px;
+            height: 20px;
+            fill: rgba(255, 255, 255, 0.7);
+            transition: fill 0.3s ease;
+        }
+        
+        .copy-button:hover .copy-icon {
+            fill: white;
+        }
+        
+        .copy-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .copy-notification.show {
+            opacity: 1;
+        }
+
+        /* For mobile responsiveness */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            h2 {
+                font-size: 16px;
+            }
+            
+            .option-button {
+                font-size: 12px;
+                padding: 10px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container" class="container etop-bg">
+        <h1>Currency Converter</h1>
+        <h2 id="currency-header">ETOP FUN SHARDS</h2>
+        
+        <div class="options">
+            <button id="etop-button" class="option-button active">ETOP FUN SHARDS</button>
+            <button id="csgo-button" class="option-button">CSGO EMPIRE COINS</button>
+        </div>
+        
+        <div class="converter">
+            <div class="input-group">
+                <label for="php-input">PHP</label>
+                <input type="number" id="php-input" placeholder="Enter PHP amount">
+            </div>
+            
+            <div class="input-group">
+                <label id="currency-label" for="currency-input">ETOP FUN SHARDS</label>
+                <input type="number" id="currency-input" placeholder="Enter ETOP FUN SHARDS amount">
+            </div>
+        </div>
+        
+        <div id="summary-container" class="summary-container" style="display: none;">
+            <span id="summary-text" class="summary-text"></span>
+            <button id="copy-button" class="copy-button" title="Copy to clipboard">
+                <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                </svg>
+            </button>
+        </div>
+        
+        <button id="refresh-button" class="refresh-button">Refresh</button>
+        
+        <p id="rate-info" class="rate-info">Current rate: 33.5 PHP = 1 ETOP FUN SHARDS</p>
+    </div>
+    
+    <div id="copy-notification" class="copy-notification">Copied to clipboard!</div>
+    
+    <script>
+        // DOM elements
+        const container = document.getElementById('container');
+        const currencyHeader = document.getElementById('currency-header');
+        const etopButton = document.getElementById('etop-button');
+        const csgoButton = document.getElementById('csgo-button');
+        const phpInput = document.getElementById('php-input');
+        const currencyInput = document.getElementById('currency-input');
+        const currencyLabel = document.getElementById('currency-label');
+        const rateInfo = document.getElementById('rate-info');
+        const refreshButton = document.getElementById('refresh-button');
+        const summaryContainer = document.getElementById('summary-container');
+        const summaryText = document.getElementById('summary-text');
+        const copyButton = document.getElementById('copy-button');
+        const copyNotification = document.getElementById('copy-notification');
+        
+        // Conversion rates
+        const rates = {
+            etop: {
+                name: 'ETOP FUN SHARDS',
+                rate: 33.5,
+                bgClass: 'etop-bg'
+            },
+            csgo: {
+                name: 'CSGO EMPIRE COINS',
+                rate: 35.5,
+                bgClass: 'csgo-bg'
+            }
+        };
+        
+        // Current selected currency (default: etop)
+        let currentCurrency = 'etop';
+        
+        // Update UI based on selected currency
+        function updateCurrency(currency) {
+            currentCurrency = currency;
+            
+            // Update button states
+            if (currency === 'etop') {
+                etopButton.classList.add('active');
+                csgoButton.classList.remove('active');
+                container.className = `container ${rates.etop.bgClass}`;
+            } else {
+                etopButton.classList.remove('active');
+                csgoButton.classList.add('active');
+                container.className = `container ${rates.csgo.bgClass}`;
+            }
+            
+            // Update label and placeholder
+            currencyLabel.textContent = rates[currency].name;
+            currencyHeader.textContent = rates[currency].name;
+            currencyInput.placeholder = `Enter ${rates[currency].name} amount`;
+            
+            // Update rate info
+            rateInfo.textContent = `Current rate: ${rates[currency].rate} PHP = 1 ${rates[currency].name}`;
+            
+            // Clear inputs and hide summary
+            phpInput.value = '';
+            currencyInput.value = '';
+            summaryContainer.style.display = 'none';
+        }
+        
+        // Format number to always show 2 decimal places without rounding
+        function formatDecimal(num) {
+            // Convert to string and split by decimal point
+            let str = num.toString();
+            let parts = str.split('.');
+            
+            // If no decimal part, add .00
+            if (parts.length === 1) {
+                return str + '.00';
+            }
+            
+            // If decimal part is shorter than 2 digits, pad with zeros
+            if (parts[1].length < 2) {
+                return str + '0'.repeat(2 - parts[1].length);
+            }
+            
+            // If decimal part is longer than 2 digits, truncate (not round)
+            if (parts[1].length > 2) {
+                return parts[0] + '.' + parts[1].substring(0, 2);
+            }
+            
+            return str;
+        }
+        
+        // Convert PHP to selected currency
+        function convertFromPHP() {
+            if (phpInput.value === '') {
+                currencyInput.value = '';
+                summaryContainer.style.display = 'none';
+                return;
+            }
+            
+            const phpAmount = parseFloat(phpInput.value);
+            const currencyAmount = phpAmount / rates[currentCurrency].rate;
+            
+            // Display with exactly 2 decimal places without rounding
+            currencyInput.value = formatDecimal(currencyAmount);
+            
+            // Update summary
+            updateSummary(phpAmount, currencyAmount, true);
+        }
+        
+        // Convert selected currency to PHP
+        function convertToPHP() {
+            if (currencyInput.value === '') {
+                phpInput.value = '';
+                summaryContainer.style.display = 'none';
+                return;
+            }
+            
+            const currencyAmount = parseFloat(currencyInput.value);
+            const phpAmount = currencyAmount * rates[currentCurrency].rate;
+            
+            // Display with exactly 2 decimal places without rounding
+            phpInput.value = formatDecimal(phpAmount);
+            
+            // Update summary
+            updateSummary(phpAmount, currencyAmount, false);
+        }
+        
+        // Update summary text
+        function updateSummary(phpAmount, currencyAmount, fromPHP) {
+            const formattedPHP = formatDecimal(phpAmount);
+            const formattedCurrency = formatDecimal(currencyAmount);
+            
+            if (fromPHP) {
+                summaryText.textContent = `${formattedPHP} PHP = ${formattedCurrency} ${rates[currentCurrency].name}`;
+            } else {
+                summaryText.textContent = `${formattedCurrency} ${rates[currentCurrency].name} = ${formattedPHP} PHP`;
+            }
+            
+            summaryContainer.style.display = 'flex';
+        }
+        
+        // Copy summary to clipboard
+        function copySummary() {
+            const textToCopy = summaryText.textContent;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Show notification
+                copyNotification.classList.add('show');
+                
+                // Hide notification after 2 seconds
+                setTimeout(() => {
+                    copyNotification.classList.remove('show');
+                }, 2000);
+            });
+        }
+        
+        // Event listeners
+        etopButton.addEventListener('click', () => updateCurrency('etop'));
+        csgoButton.addEventListener('click', () => updateCurrency('csgo'));
+        
+        phpInput.addEventListener('input', convertFromPHP);
+        currencyInput.addEventListener('input', convertToPHP);
+        
+        copyButton.addEventListener('click', copySummary);
+        
+        refreshButton.addEventListener('click', () => {
+            phpInput.value = '';
+            currencyInput.value = '';
+            summaryContainer.style.display = 'none';
+        });
+        
+        // Initialize with ETOP FUN SHARDS
+        updateCurrency('etop');
+    </script>
+</body>
+</html>
