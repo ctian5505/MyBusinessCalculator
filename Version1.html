@@ -145,21 +145,40 @@
             padding: 15px;
             border-radius: 8px;
             background-color: rgba(255, 255, 255, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         
-        .summary-text {
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .summary-label {
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .summary-value {
             color: white;
-            font-size: 14px;
         }
         
         .copy-button {
-            background-color: transparent;
+            background-color: rgba(255, 255, 255, 0.2);
             border: none;
             cursor: pointer;
-            padding: 5px;
+            padding: 8px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .copy-text {
+            color: white;
+            font-size: 14px;
+            margin-left: 5px;
         }
         
         .copy-icon {
@@ -235,11 +254,19 @@
         </div>
         
         <div id="summary-container" class="summary-container" style="display: none;">
-            <span id="summary-text" class="summary-text"></span>
+            <div class="summary-row">
+                <span class="summary-label">PHP:</span>
+                <span id="summary-php" class="summary-value">1000.00</span>
+            </div>
+            <div class="summary-row">
+                <span id="summary-currency-label" class="summary-label">SHARDS:</span>
+                <span id="summary-currency" class="summary-value">29.85</span>
+            </div>
             <button id="copy-button" class="copy-button" title="Copy to clipboard">
-                <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
                     <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
                 </svg>
+                <span class="copy-text">Copy result</span>
             </button>
         </div>
         
@@ -377,27 +404,44 @@
             const formattedPHP = formatDecimal(phpAmount);
             const formattedCurrency = formatDecimal(currencyAmount);
             
-            if (fromPHP) {
-                summaryText.textContent = `${formattedPHP} PHP = ${formattedCurrency} ${rates[currentCurrency].name}`;
-            } else {
-                summaryText.textContent = `${formattedCurrency} ${rates[currentCurrency].name} = ${formattedPHP} PHP`;
-            }
+            // Update the summary values
+            document.getElementById('summary-php').textContent = formattedPHP;
+            document.getElementById('summary-currency').textContent = formattedCurrency;
+            document.getElementById('summary-currency-label').textContent = rates[currentCurrency].name + ':';
             
-            summaryContainer.style.display = 'flex';
+            summaryContainer.style.display = 'block';
         }
         
         // Copy summary to clipboard
         function copySummary() {
-            const textToCopy = summaryText.textContent;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                // Show notification
-                copyNotification.classList.add('show');
-                
-                // Hide notification after 2 seconds
-                setTimeout(() => {
-                    copyNotification.classList.remove('show');
-                }, 2000);
-            });
+            const phpValue = document.getElementById('summary-php').textContent;
+            const currencyLabel = document.getElementById('summary-currency-label').textContent;
+            const currencyValue = document.getElementById('summary-currency').textContent;
+            
+            const textToCopy = `PHP: ${phpValue}\n${currencyLabel} ${currencyValue}`;
+            
+            // Create a temporary textarea element to handle the copy
+            const textarea = document.createElement('textarea');
+            textarea.value = textToCopy;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            
+            // Select the text and copy it
+            textarea.select();
+            document.execCommand('copy');
+            
+            // Remove the temporary element
+            document.body.removeChild(textarea);
+            
+            // Show notification
+            copyNotification.classList.add('show');
+            
+            // Hide notification after 2 seconds
+            setTimeout(() => {
+                copyNotification.classList.remove('show');
+            }, 2000);
         }
         
         // Event listeners
