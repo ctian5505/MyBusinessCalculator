@@ -279,6 +279,33 @@
             color: white;
         }
 
+        /* New styles for currency copy icon */
+        .summary-value-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .currency-copy-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .currency-copy-icon {
+            width: 16px;
+            height: 16px;
+            fill: rgba(255, 255, 255, 0.5);
+            transition: fill 0.3s ease;
+        }
+
+        .currency-copy-button:hover .currency-copy-icon {
+            fill: white;
+        }
+
         /* For mobile responsiveness */
         @media (max-width: 480px) {
             .container {
@@ -337,7 +364,14 @@
             </div>
             <div class="summary-row">
                 <span id="summary-currency-label" class="summary-label">SHARDS:</span>
-                <span id="summary-currency" class="summary-value">29.85</span>
+                <div class="summary-value-container">
+                    <span id="summary-currency" class="summary-value">29.85</span>
+                    <button id="copy-currency-button" class="currency-copy-button" title="Copy currency value">
+                        <svg class="currency-copy-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <div class="summary-row" style="margin-top: 8px;">
                 <span class="summary-label">Rate:</span>
@@ -383,6 +417,7 @@
         const copyButton = document.getElementById('copy-button');
         const copyNotification = document.getElementById('copy-notification');
         const summaryRate = document.getElementById('summary-rate');
+        const copyCurrencyButton = document.getElementById('copy-currency-button');
         
         // Rate editor elements
         const editRateButton = document.getElementById('edit-rate-button');
@@ -582,6 +617,23 @@
             }
         }
 
+        // Copy just the currency value to clipboard
+        function copyCurrencyValue() {
+            const currencyValue = document.getElementById('summary-currency').textContent;
+            const currencyName = rates[currentCurrency].name;
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(currencyValue).then(() => {
+                    showNotification(`${currencyName} value copied!`);
+                }).catch(err => {
+                    fallbackCopyTextToClipboard(currencyValue);
+                });
+            } else {
+                fallbackCopyTextToClipboard(currencyValue);
+            }
+        }
+
         function fallbackCopyTextToClipboard(text) {
             // Create a temporary textarea element to handle the copy
             const textarea = document.createElement('textarea');
@@ -684,6 +736,7 @@
         currencyInput.addEventListener('input', convertToPHP);
         
         copyButton.addEventListener('click', copySummary);
+        copyCurrencyButton.addEventListener('click', copyCurrencyValue);
         
         refreshButton.addEventListener('click', () => {
             phpInput.value = '';
